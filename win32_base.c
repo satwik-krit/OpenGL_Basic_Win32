@@ -1,16 +1,8 @@
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <wingdi.h>
-#include <Windows.h>
 #include <gl/gl.h>
 #include <stdio.h>
 
-#include "glext.h"
-#include "wglext.h"
+#include "win32_base.h"
 
-#define local_persist static
-#define global_variable static
-#define internal static
 
 /* SAMPLE ERROR FETCHING
   DWORD dw = GetLastError(); 
@@ -23,16 +15,16 @@
 		0, NULL);
 		OutputDebugString(lpMsgBuf); */
 void*
-LoadGLFunction(const char* name)
+LoadGLFunction (const char* name)
 {
-  void *function = (void *)wglGetProcAddress(name);
+  void *function = (void *)wglGetProcAddress (name);
   // TODO: Handle case where function is NULL or 0
   return function;
 }
 
 
-internal void
-InitOpenGL(HWND Window, HDC DeviceContext)
+void
+InitOpenGL (HWND Window, HDC DeviceContext)
 {
   PIXELFORMATDESCRIPTOR DesiredPixelFormat = {0};
   PIXELFORMATDESCRIPTOR SuggestedPixelFormat;
@@ -47,40 +39,29 @@ InitOpenGL(HWND Window, HDC DeviceContext)
   DescribePixelFormat (DeviceContext, SuggestedPixelFormatIndex, sizeof (SuggestedPixelFormat), &SuggestedPixelFormat);
   SetPixelFormat (DeviceContext, SuggestedPixelFormatIndex, &SuggestedPixelFormat);
 
-  HGLRC OpenGLRC = wglCreateContext(DeviceContext);
-  if (wglMakeCurrent(DeviceContext, OpenGLRC))
-    {
-	int Major = 0;
-	int Minor = 0;
-	glGetIntegerv(GL_MAJOR_VERSION, &Major);
-	glGetIntegerv(GL_MINOR_VERSION, &Minor);
-	printf ("%d, %d", Major, Minor);
+  HGLRC OpenGLRC = wglCreateContext (DeviceContext);
+
+  if (wglMakeCurrent (DeviceContext, OpenGLRC))
+  {
 	PFNGLUSEPROGRAMPROC glUseProgram =(PFNGLUSEPROGRAMPROC) LoadGLFunction("glUseProgram");
-    }
+  }
   else
-    {
-	/* printf("Printing the versions\n"); */
-      /* 	printf("%d\n",*Major); */
-      /* 	printf("%d\n",*Minor); */
-      /* OutputDebugString("Failed to make context current!"); */
-    }
+  {;}
   
 }
 
-int DisplayResourceNAMessageBox();
 
-internal void
+void
 OpenGLDraw (HDC DeviceContext)
 {
-  /* glViewport(0, 0, WindowWidth, WindowHeight); */
   glViewport (0, 0, 800, 800);
-  glClearColor (0.0f,0.0f,1.0f,1.0f);
+  glClearColor (0.0f,1.0f,1.0f,1.0f);
   glClear (GL_COLOR_BUFFER_BIT);
   SwapBuffers (DeviceContext);
 }
 
 
- LRESULT
+LRESULT
 MainWindowCallback(HWND Window,
 		   UINT Message,
 		   WPARAM wParam,
@@ -88,7 +69,7 @@ MainWindowCallback(HWND Window,
 {
   LRESULT Result = 0;
   switch(Message)
-    {
+  {
     case WM_CREATE:
       {
       } break;
@@ -123,7 +104,8 @@ MainWindowCallback(HWND Window,
 	/* OutputDebugString("default\n"); */
 	Result = DefWindowProc(Window, Message, wParam, lParam);
       } break;
-    }
+  }
+
   return Result;
 }
 
@@ -138,35 +120,37 @@ WinMain(HINSTANCE Instance, // Windows-provided instance of the program
   WindowClass.lpfnWndProc = MainWindowCallback;
   WindowClass.hInstance = Instance;
   WindowClass.lpszClassName = "MyFirstWindow";
-  if(RegisterClass(&WindowClass))
-    {
-      HWND WindowHandle = CreateWindowEx(WS_EX_OVERLAPPEDWINDOW|WS_EX_WINDOWEDGE,
-					 WindowClass.lpszClassName,
-					 "Learning OpenGL",
-					 WS_OVERLAPPEDWINDOW|WS_VISIBLE,
-					 CW_USEDEFAULT,
-					 CW_USEDEFAULT,
-					 CW_USEDEFAULT,
-					 CW_USEDEFAULT,
-					 0,
-					 0,
-					 Instance,
-					 0);
-      if(WindowHandle)
-	{
-	  HDC DeviceContext = GetDC(WindowHandle);
 
-	  InitOpenGL(WindowHandle, DeviceContext);
+  if(RegisterClass (&WindowClass))
+  {
+      HWND WindowHandle = CreateWindowEx (WS_EX_OVERLAPPEDWINDOW|WS_EX_WINDOWEDGE,
+					  WindowClass.lpszClassName,
+					  "Learning OpenGL",
+					  WS_OVERLAPPEDWINDOW|WS_VISIBLE,
+					  CW_USEDEFAULT,
+					  CW_USEDEFAULT,
+					  CW_USEDEFAULT,
+					  CW_USEDEFAULT,
+					  0,
+					  0,
+					  Instance,
+					  0);
+
+      if(WindowHandle)
+      {
+	  HDC DeviceContext = GetDC (WindowHandle);
+
+	  InitOpenGL (WindowHandle, DeviceContext);
 
 	  while (1)
 	  {
 	     MSG Message;
-	     BOOL MessageResult = GetMessage(&Message, 0, 0, 0);
+	     BOOL MessageResult = GetMessage (&Message, 0, 0, 0);
 
 	     if (MessageResult > 0)
 	     {
-	      TranslateMessage(&Message);
-	      DispatchMessage(&Message);
+	      TranslateMessage (&Message);
+	      DispatchMessage (&Message);
 
 	      OpenGLDraw (DeviceContext);
 	     }
@@ -178,48 +162,22 @@ WinMain(HINSTANCE Instance, // Windows-provided instance of the program
 
 	  }
 	    
-	}
+      }
 
       else
 	{
   // TODO: Logging
 	}
-    }
+  }
 
   else
-    {
-      // TODO: Logging
-    }
+  {
+    // TODO: Logging
+  }
 
   return 0;
 }
 
-int DisplayResourceNAMessageBox()
-{
-    int msgboxID = MessageBoxA(
-        NULL,
-        "Resource not available\nDo you want to try again?",
-        "Account Details",
-        MB_ICONWARNING | MB_CANCELTRYCONTINUE | MB_DEFBUTTON2
-    );
-
-    switch (msgboxID)
-    {
-    case IDCANCEL:
-        // TODO: add code
-	exit(0);
-	break;
-    case IDTRYAGAIN:
-        // TODO: add code
-        break;
-    case IDCONTINUE:
-        // TODO: add code
-        break;
-    }
-
-    return msgboxID;
-}
-
 /* Local Variables: */
-/* compile-command: "build.bat" */
+/* compile-command: "start /C build.bat" */
 /* End: */
